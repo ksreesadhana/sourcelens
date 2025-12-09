@@ -4,10 +4,14 @@ import UrlInput from '../components/analyzer/UrlInput';
 import { Mode } from '../types';
 import { scrapeUrl, extractTextContent } from '../lib/firecrawl';
 import { analyzeScraped } from '../lib/analysis';
+import { saveAnalysis } from '../lib/supabase';
 import ResultsTabs from '../components/results/ResultsTabs';
-import { Loader, AlertCircle, CheckCircle, ChevronDown } from 'lucide-react';
+import { Loader, AlertCircle, CheckCircle, Moon, Sun, Save } from 'lucide-react';
+import { useStore } from '../store';
 
 export default function Analyze() {
+  const isDarkMode = useStore((state) => state.isDarkMode);
+  const toggleDarkMode = useStore((state) => state.toggleDarkMode);
   const [mode, setMode] = useState<Mode | null>(null);
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -19,9 +23,9 @@ export default function Analyze() {
     markdown: string;
   } | null>(null);
   const [analysisResults, setAnalysisResults] = useState<any | null>(null);
-  const [expandedSection, setExpandedSection] = useState<'scraped' | 'analysis' | null>(
-    null
-  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleUrlChange = (newUrl: string) => {
     setUrl(newUrl);
@@ -48,6 +52,9 @@ export default function Analyze() {
     setIsLoading(true);
     setError(null);
     setScrapedData(null);
+    setAnalysisResults(null); // Clear previous results
+    setSaveSuccess(false);
+    setSaveError(null);
 
     try {
       // Scrape the URL using Firecrawl
@@ -98,43 +105,50 @@ export default function Analyze() {
 
   const isButtonDisabled = !mode || url.trim() === '' || urlError !== null || isLoading;
 
-  const toggleSection = (section: 'scraped' | 'analysis') => {
-    setExpandedSection(expandedSection === section ? null : section);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <div className="h-screen flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-2">
-          <h1 className="text-lg font-bold text-gray-900 leading-tight">
+        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b px-6 py-2 flex items-center justify-between`}>
+          <h1 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} leading-tight`}>
             Let's Decode
           </h1>
+          <button
+            onClick={toggleDarkMode}
+            className={`p-2 rounded-lg transition-colors ${
+              isDarkMode 
+                ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' 
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            }`}
+            aria-label="Toggle dark mode"
+          >
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
         </div>
 
         {/* Two-pane layout: Left (inputs) and Right (results) */}
         <div className="flex flex-1 overflow-hidden">
           {/* LEFT PANE: Inputs + scraped preview (no pane scroll) */}
-          <div className="w-full lg:w-1/3 border-r border-gray-200 bg-white flex flex-col">
+          <div className={`w-full lg:w-[38%] border-r ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'} flex flex-col`}>
             <div className="p-4 space-y-4">
               {/* Error Alert */}
               {error && (
-                <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className={`flex items-start gap-2 p-3 ${isDarkMode ? 'bg-red-900/30 border-red-700' : 'bg-red-50 border-red-200'} border rounded-lg`}>
+                  <AlertCircle className={`w-4 h-4 ${isDarkMode ? 'text-red-400' : 'text-red-600'} flex-shrink-0 mt-0.5`} />
                   <div>
-                    <h3 className="font-semibold text-red-900 text-xs">Error</h3>
-                    <p className="text-xs text-red-700 mt-0.5">{error}</p>
+                    <h3 className={`font-semibold ${isDarkMode ? 'text-red-300' : 'text-red-900'} text-xs`}>Error</h3>
+                    <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-700'} mt-0.5`}>{error}</p>
                   </div>
                 </div>
               )}
 
               {/* Success Alert */}
               {scrapedData && !isLoading && (
-                <div className="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className={`flex items-start gap-2 p-3 ${isDarkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-200'} border rounded-lg`}>
+                  <CheckCircle className={`w-4 h-4 ${isDarkMode ? 'text-green-400' : 'text-green-600'} flex-shrink-0 mt-0.5`} />
                   <div>
-                    <h3 className="font-semibold text-green-900 text-xs">Scraped</h3>
-                    <p className="text-xs text-green-700 mt-0.5 truncate">
+                    <h3 className={`font-semibold ${isDarkMode ? 'text-green-300' : 'text-green-900'} text-xs`}>Scraped</h3>
+                    <p className={`text-xs ${isDarkMode ? 'text-green-400' : 'text-green-700'} mt-0.5 truncate`}>
                       {scrapedData.title}
                     </p>
                   </div>
@@ -143,14 +157,14 @@ export default function Analyze() {
 
               <div className="space-y-3">
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-900 mb-2">
+                  <h2 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'} mb-2`}>
                     Analysis Mode
                   </h2>
                   <ModeSelector selectedMode={mode} onModeSelect={setMode} />
                 </div>
 
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-900 mb-2">
+                  <h2 className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-900'} mb-2`}>
                     Enter URL
                   </h2>
                   <UrlInput
@@ -183,13 +197,13 @@ export default function Analyze() {
 
               {/* Scraped Content Preview (scrolls inside itself only) */}
               {scrapedData && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div className={`${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'} border rounded-lg p-3`}>
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-sm text-gray-900">Scraped Content</h3>
-                    <span className="text-[11px] text-gray-500">{scrapedData.rawText.length} chars</span>
+                    <h3 className={`font-semibold text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>Scraped Content Preview</h3>
+                    <span className={`text-[11px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{scrapedData.rawText.length} chars</span>
                   </div>
-                  <div className="max-h-48 overflow-y-auto bg-white border border-gray-200 rounded p-2">
-                    <p className="text-xs text-gray-700 whitespace-pre-wrap leading-snug">
+                  <div className={`max-h-48 overflow-y-auto ${isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200'} border rounded p-2`}>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} whitespace-pre-wrap leading-snug`}>
                       {scrapedData.rawText.slice(0, 2000)}
                       {scrapedData.rawText.length > 2000 && '...'}
                     </p>
@@ -200,15 +214,55 @@ export default function Analyze() {
           </div>
 
           {/* RIGHT PANE: Results (no pane scroll) */}
-          <div className="w-full lg:w-2/3 bg-gray-50">
+          <div className={`w-full lg:w-[62%] ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
             <div className="p-6 space-y-4">
               {/* Analysis Results Section */}
               {analysisResults && (
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-gray-200">
-                    <h3 className="font-semibold text-base text-gray-900">
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow overflow-hidden`}>
+                  <div className={`px-4 py-2.5 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} border-b flex items-center justify-between`}>
+                    <h3 className={`font-semibold text-base ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                       Analysis Results
                     </h3>
+                    <button
+                      onClick={async () => {
+                        setIsSaving(true);
+                        setSaveError(null);
+                        try {
+                          const savedId = await saveAnalysis({
+                            url,
+                            mode,
+                            results: analysisResults,
+                            scraped_title: scrapedData?.title || url,
+                            scraped_text: scrapedData?.rawText.substring(0, 5000) || '',
+                          });
+                          console.log('Analysis saved successfully:', savedId);
+                          setSaveSuccess(true);
+                          setSaveError(null);
+                          setTimeout(() => setSaveSuccess(false), 3000);
+                        } catch (error) {
+                          const errMsg = error instanceof Error ? error.message : String(error);
+                          console.error('Error saving analysis:', errMsg);
+                          setSaveError(errMsg);
+                          alert(errMsg);
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }}
+                      disabled={isSaving}
+                      title={saveError || ''}
+                      className={`flex items-center gap-1 px-3 py-1 text-sm rounded transition-colors ${
+                        saveSuccess 
+                          ? 'bg-green-600 text-white' 
+                          : saveError
+                            ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                            : isDarkMode 
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                              : 'bg-blue-500 hover:bg-blue-600 text-white'
+                      } disabled:opacity-50`}
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      {isSaving ? 'Saving...' : saveSuccess ? 'Saved!' : saveError ? 'Sign in to Save' : 'Save'}
+                    </button>
                   </div>
                   <div className="px-6 py-4">
                     <ResultsTabs results={analysisResults} mode={mode as any} />
@@ -216,12 +270,58 @@ export default function Analyze() {
                 </div>
               )}
 
+              {/* Loading State */}
+              {isLoading && (
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-12 text-center h-96 flex items-center justify-center`}>
+                  <div className="w-full max-w-md space-y-6">
+                    <div className="relative">
+                      <Loader className={`w-16 h-16 mx-auto ${isDarkMode ? 'text-blue-400' : 'text-blue-600'} animate-spin`} />
+                    </div>
+                    <div>
+                      <h3 className={`text-xl font-semibold mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
+                        Analyzing Content
+                      </h3>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        AI is processing your request...
+                      </p>
+                    </div>
+                    {/* Animated Progress Bar */}
+                    <div className="w-full space-y-2">
+                      <div className={`w-full h-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                        <div className={`h-full ${isDarkMode ? 'bg-gradient-to-r from-blue-500 to-indigo-500' : 'bg-gradient-to-r from-blue-600 to-indigo-600'} rounded-full animate-pulse`} 
+                             style={{width: '70%', animation: 'progress 2s ease-in-out infinite'}}></div>
+                      </div>
+                      <style>{`
+                        @keyframes progress {
+                          0%, 100% { width: 30%; }
+                          50% { width: 90%; }
+                        }
+                      `}</style>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Empty State */}
               {!scrapedData && !analysisResults && !isLoading && (
-                <div className="bg-white rounded-lg shadow p-12 text-center h-96 flex items-center justify-center">
-                  <p className="text-gray-500 text-lg">
-                    Enter a URL and click "Analyze" to see results here
-                  </p>
+                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow p-12 text-center h-96 flex items-center justify-center`}>
+                  <div className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                    <p className="text-lg font-semibold mb-4">Get Started</p>
+                    <ul className="text-left inline-block space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>1.</span>
+                        <span>Select your decode mode</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>2.</span>
+                        <span>Enter a URL you would like to scrape</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className={`${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>3.</span>
+                        <span>Click on Analyze button</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               )}
             </div>

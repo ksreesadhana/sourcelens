@@ -1,5 +1,6 @@
-import { FileText, Package, Shield, Target } from 'lucide-react';
+import { FileText, Package, FileCheck, Target } from 'lucide-react';
 import { Mode } from '../../types';
+import { useStore } from '../../store';
 
 interface ModeSelectorProps {
   selectedMode: Mode | null;
@@ -23,7 +24,7 @@ const modes = [
     id: 'policy' as const,
     label: 'Policy',
     description: 'Decode policies and terms',
-    icon: Shield,
+    icon: FileCheck,
   },
   {
     id: 'competitive' as const,
@@ -37,6 +38,7 @@ export default function ModeSelector({
   selectedMode,
   onModeSelect,
 }: ModeSelectorProps) {
+  const isDarkMode = useStore((state) => state.isDarkMode);
   // Resolve asset URLs via import.meta so Vite bundles them correctly
   const articleBgUrl = new URL('../../assets/article-bg.png', import.meta.url).href;
   const productBgUrl = new URL('../../assets/product-bg.png', import.meta.url).href;
@@ -78,14 +80,20 @@ export default function ModeSelector({
             onClick={() => onModeSelect(mode.id)}
             className={`aspect-square rounded-md border-2 transition-all relative overflow-hidden transform-gpu p-2 flex flex-col items-center justify-center ${
               isSelected
-                ? 'border-blue-600 bg-gradient-to-r from-blue-50 to-blue-100 shadow-md ring-1 ring-blue-200 scale-100'
-                : 'border-gray-300 bg-white hover:border-gray-400 hover:scale-[1.01]'
+                ? isDarkMode
+                  ? 'border-blue-500 bg-gradient-to-r from-blue-900/50 to-blue-800/50 shadow-md ring-1 ring-blue-500 scale-100'
+                  : 'border-blue-600 bg-gradient-to-r from-blue-50 to-blue-100 shadow-md ring-1 ring-blue-200 scale-100'
+                : isDarkMode
+                  ? 'border-gray-600 bg-gray-700 hover:border-gray-500 hover:scale-[1.01]'
+                  : 'border-gray-300 bg-white hover:border-gray-400 hover:scale-[1.01]'
             }`}
           >
             {/* subtle selected pill indicator */}
             {isSelected && (
               <span aria-hidden className="absolute top-1 right-1 z-20">
-                <span className="inline-flex items-center px-1 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-700 shadow-sm">
+                <span className={`inline-flex items-center px-1 py-0.5 rounded-full text-[10px] font-medium shadow-sm ${
+                  isDarkMode ? 'bg-blue-700 text-blue-200' : 'bg-blue-100 text-blue-700'
+                }`}>
                   ✓
                 </span>
               </span>
@@ -93,10 +101,10 @@ export default function ModeSelector({
             {/* inline background image (from src/assets) */}
             <RenderBgImage />
 
-            <div className="relative z-10 text-center leading-tight">
-              <Icon className={`w-5 h-5 mb-1 ${isSelected ? 'text-blue-600' : 'text-gray-600'}`} />
-              <h3 className="font-semibold text-gray-900 text-[0.8rem]">{mode.label}</h3>
-              <p className="text-[0.68rem] text-gray-600 line-clamp-2">{mode.description}</p>
+            <div className="relative z-10 text-center leading-tight flex flex-col items-center">
+              <Icon className={`w-5 h-5 mb-1 mx-auto ${isSelected ? (isDarkMode ? 'text-blue-400' : 'text-blue-700') : (isDarkMode ? 'text-gray-300' : 'text-gray-800')}`} />
+              <h3 className={`font-black text-[0.95rem] ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>{mode.label}</h3>
+              <p className={`text-[0.6rem] line-clamp-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{mode.description}</p>
             </div>
             
           </button>

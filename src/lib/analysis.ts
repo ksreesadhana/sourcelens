@@ -189,22 +189,41 @@ import { AnalysisResults, Mode } from '../types';
     const content = json.choices?.[0]?.message?.content;
     if (!content) throw new Error('OpenAI returned no content');
 
+    console.log('Raw model response:', content);
+
     // Try to parse JSON directly; if not, extract JSON block
     let parsed: any;
     try {
       parsed = JSON.parse(content);
     } catch (err) {
-      const match = content.match(/\{[\s\S]*\}/);
-      if (match) {
+      // Try to extract JSON from markdown code blocks
+      const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (codeBlockMatch) {
         try {
-          parsed = JSON.parse(match[0]);
+          parsed = JSON.parse(codeBlockMatch[1]);
         } catch (_) {
-          throw new Error('Failed to parse JSON from model response');
+          // Fall through to next attempt
         }
-      } else {
-        throw new Error('Model response was not valid JSON');
+      }
+      
+      // If still not parsed, try to find raw JSON object
+      if (!parsed) {
+        const match = content.match(/\{[\s\S]*\}/);
+        if (match) {
+          try {
+            parsed = JSON.parse(match[0]);
+          } catch (_) {
+            console.error('Failed to parse extracted JSON:', match[0]);
+            throw new Error('Failed to parse JSON from model response. The model may have returned invalid JSON.');
+          }
+        } else {
+          console.error('No JSON object found in response:', content);
+          throw new Error('Model response did not contain valid JSON. Please try again.');
+        }
       }
     }
+
+    console.log('Parsed result:', parsed);
 
     // If key pieces are missing, attempt a single repair: ask model to return only the missing fields
     const hasBrief = parsed?.brief_json && (Array.isArray(parsed.brief_json.tldr) && parsed.brief_json.tldr.length > 0 || Array.isArray(parsed.brief_json.key_points) && parsed.brief_json.key_points.length > 0);

@@ -10,6 +10,9 @@ interface AnalyzeState {
   analysisStep: 'idle' | 'scraping' | 'analyzing' | 'structuring' | 'complete';
   results: AnalysisResults | null;
   error: string | null;
+  
+  // Theme state
+  isDarkMode: boolean;
 
   // Actions
   setMode: (mode: Mode) => void;
@@ -19,6 +22,7 @@ interface AnalyzeState {
   setAnalysisStep: (step: AnalyzeState['analysisStep']) => void;
   setResults: (results: AnalysisResults | null) => void;
   setError: (error: string | null) => void;
+  toggleDarkMode: () => void;
   reset: () => void;
 }
 
@@ -30,6 +34,7 @@ export const useStore = create<AnalyzeState>((set) => ({
   analysisStep: 'idle',
   results: null,
   error: null,
+  isDarkMode: false,
 
   setMode: (mode) => set({ mode }),
   setUrl: (url) => set({ url }),
@@ -38,6 +43,7 @@ export const useStore = create<AnalyzeState>((set) => ({
   setAnalysisStep: (analysisStep) => set({ analysisStep }),
   setResults: (results) => set({ results }),
   setError: (error) => set({ error }),
+  toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
   reset: () => set({
     mode: null,
     url: '',
