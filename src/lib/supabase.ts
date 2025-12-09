@@ -100,11 +100,30 @@ export async function saveAnalysis(data: {
 
 // Get user's saved analyses
 export async function getUserAnalyses(limit = 50) {
-  const { data: session } = await supabase.auth.getSession();
-  const userId = session.session?.user?.id;
+  let { data: session } = await supabase.auth.getSession();
+  let userId = session.session?.user?.id;
 
+  // If user is not authenticated, sign in as guest
   if (!userId) {
-    throw new Error('User not authenticated');
+    const guestEmail = import.meta.env.VITE_GUEST_EMAIL || 'guest@sourcelens.app';
+    const guestPassword = import.meta.env.VITE_GUEST_PASSWORD || 'guest123456';
+    
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: guestEmail,
+        password: guestPassword,
+      });
+      
+      if (authError || !authData.user) {
+        console.log('Guest user not authenticated, returning empty array');
+        return [];
+      }
+      
+      userId = authData.user.id;
+    } catch (err) {
+      console.error('Guest authentication error:', err);
+      return [];
+    }
   }
 
   const { data, error } = await supabase
@@ -124,11 +143,30 @@ export async function getUserAnalyses(limit = 50) {
 
 // Search user's analyses by keyword
 export async function searchUserAnalyses(keyword: string, limit = 50) {
-  const { data: session } = await supabase.auth.getSession();
-  const userId = session.session?.user?.id;
+  let { data: session } = await supabase.auth.getSession();
+  let userId = session.session?.user?.id;
 
+  // If user is not authenticated, sign in as guest
   if (!userId) {
-    throw new Error('User not authenticated');
+    const guestEmail = import.meta.env.VITE_GUEST_EMAIL || 'guest@sourcelens.app';
+    const guestPassword = import.meta.env.VITE_GUEST_PASSWORD || 'guest123456';
+    
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: guestEmail,
+        password: guestPassword,
+      });
+      
+      if (authError || !authData.user) {
+        console.log('Guest user not authenticated, returning empty array');
+        return [];
+      }
+      
+      userId = authData.user.id;
+    } catch (err) {
+      console.error('Guest authentication error:', err);
+      return [];
+    }
   }
 
   const searchTerm = `%${keyword}%`;
