@@ -1,10 +1,12 @@
 import { AnalysisResults, Mode } from '../types';
+import { analyzeWithGemini } from './gemini';
 
   interface AnalyzePayload {
     mode: Mode;
     url: string;
     markdown: string;
     rawText: string;
+    aiProvider?: 'openai' | 'gemini';
   }
 
   const PROMPTS: Record<Mode, { system: string; userTemplate: (markdown: string, url: string) => string }> = {
@@ -91,6 +93,14 @@ import { AnalysisResults, Mode } from '../types';
   };
 
   export async function analyzeScraped(payload: AnalyzePayload): Promise<AnalysisResults> {
+    const { aiProvider = 'openai' } = payload;
+
+    // Use Gemini if specified
+    if (aiProvider === 'gemini') {
+      return analyzeWithGemini(payload);
+    }
+
+    // Use OpenAI (default)
     const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
     const model = import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o-mini';
 

@@ -47,8 +47,14 @@ export default function Workspace() {
       setFilteredAnalyses(data || []);
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to load analyses';
-      setError(errMsg);
       console.error('Error loading analyses:', err);
+      // Don't show error for empty results, just show empty state
+      if (errMsg.includes('not authenticated')) {
+        setAnalyses([]);
+        setFilteredAnalyses([]);
+      } else {
+        setError(errMsg);
+      }
     } finally {
       setIsLoading(false);
     }

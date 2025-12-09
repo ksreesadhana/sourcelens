@@ -12,6 +12,8 @@ import { useStore } from '../store';
 export default function Analyze() {
   const isDarkMode = useStore((state) => state.isDarkMode);
   const toggleDarkMode = useStore((state) => state.toggleDarkMode);
+  const aiProvider = useStore((state) => state.aiProvider);
+  const setAIProvider = useStore((state) => state.setAIProvider);
   const [mode, setMode] = useState<Mode | null>(null);
   const [url, setUrl] = useState('');
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -78,13 +80,14 @@ export default function Analyze() {
         textLength: cleanText.length,
       });
 
-      // Send scraped data to the analysis function (OpenAI-backed)
+      // Send scraped data to the analysis function (OpenAI/Gemini-backed)
       try {
         const analysis = await analyzeScraped({
           mode: mode as any,
           url,
           markdown: response.data.markdown,
           rawText: cleanText,
+          aiProvider, // Use selected AI provider
         });
 
         setAnalysisResults(analysis);
@@ -113,17 +116,45 @@ export default function Analyze() {
           <h1 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} leading-tight`}>
             Let's Decode
           </h1>
-          <button
-            onClick={toggleDarkMode}
-            className={`p-2 rounded-lg transition-colors ${
-              isDarkMode 
-                ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' 
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-            }`}
-            aria-label="Toggle dark mode"
-          >
-            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
+          <div className="flex items-center gap-2">
+            {/* AI Provider Toggle */}
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-100 border-gray-300'}`}>
+              <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>AI:</span>
+              <button
+                onClick={() => setAIProvider(aiProvider === 'openai' ? 'gemini' : 'openai')}
+                className={`px-2 py-0.5 text-xs font-semibold rounded transition-colors ${
+                  aiProvider === 'openai'
+                    ? isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'
+                    : isDarkMode ? 'bg-gray-600 text-gray-300 hover:bg-gray-500' : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                OpenAI
+              </button>
+              <button
+                onClick={() => setAIProvider(aiProvider === 'openai' ? 'gemini' : 'openai')}
+                className={`px-2 py-0.5 text-xs font-semibold rounded transition-colors ${
+                  aiProvider === 'gemini'
+                    ? isDarkMode ? 'bg-purple-600 text-white' : 'bg-purple-500 text-white'
+                    : isDarkMode ? 'bg-gray-600 text-gray-300 hover:bg-gray-500' : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                Gemini
+              </button>
+            </div>
+            
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className={`p-2 rounded-lg transition-colors ${
+                isDarkMode 
+                  ? 'bg-gray-700 hover:bg-gray-600 text-yellow-400' 
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
+              aria-label="Toggle dark mode"
+            >
+              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
         {/* Two-pane layout: Left (inputs) and Right (results) */}
@@ -135,9 +166,9 @@ export default function Analyze() {
               {error && (
                 <div className={`flex items-start gap-2 p-3 ${isDarkMode ? 'bg-red-900/30 border-red-700' : 'bg-red-50 border-red-200'} border rounded-lg`}>
                   <AlertCircle className={`w-4 h-4 ${isDarkMode ? 'text-red-400' : 'text-red-600'} flex-shrink-0 mt-0.5`} />
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h3 className={`font-semibold ${isDarkMode ? 'text-red-300' : 'text-red-900'} text-xs`}>Error</h3>
-                    <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-700'} mt-0.5`}>{error}</p>
+                    <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-700'} mt-0.5 break-words overflow-wrap-anywhere`}>{error}</p>
                   </div>
                 </div>
               )}
