@@ -23,7 +23,7 @@ export default function ResultsTabs({ results, mode }: ResultsTabsProps) {
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
-      <div className="flex gap-2 border-b border-gray-200 mb-6">
+      <div className="flex gap-2 border-b border-gray-200 mb-4">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -40,10 +40,10 @@ export default function ResultsTabs({ results, mode }: ResultsTabsProps) {
         ))}
       </div>
 
-      <div>
+      <div className="max-h-96 overflow-y-auto pr-1">
         {activeTab === 'brief' && <BriefView results={results} mode={mode} />}
-        {activeTab === 'structured' && <StructuredView results={results} mode={mode} />}
-        {activeTab === 'raw' && <RawView results={results} mode={mode} />}
+        {activeTab === 'structured' && <StructuredView structured={results.structured_json} mode={mode} />}
+        {activeTab === 'raw' && <RawView rawText={results.raw_text} />}
       </div>
     </div>
   )
